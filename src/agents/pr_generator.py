@@ -78,7 +78,7 @@ class PRGeneratorAgent(BaseAgent):
                 else:
                     readme_path = project_path / "README.md"
                     readme_path.write_text(
-                        f"
+                        f"# {project_name}\n\nProject initialized by Automaton System.\n"
                     )
                     self.git_repo.git.add("README.md")
                     self.git_repo.git.commit(
@@ -258,7 +258,7 @@ class PRGeneratorAgent(BaseAgent):
                     readme_path = self.target_repo_path / "README.md"
                     if not readme_path.exists():
                         readme_path.write_text(
-                            f"
+                            f"# {project_name}\n\nProject initialized by Automaton System.\n"
                         )
                     self.git_repo.git.add(str(readme_path))
                     self.git_repo.git.commit(
@@ -439,7 +439,7 @@ class PRGeneratorAgent(BaseAgent):
                         readme_path = self.target_repo_path / "README.md"
                         if not readme_path.exists():
                             readme_path.write_text(
-                                f"
+                                f"# {project_name}\n\nProject initialized by Automaton System.\n"
                             )
                         self.git_repo.git.checkout("-b", "main")
                         self.git_repo.git.add(".")

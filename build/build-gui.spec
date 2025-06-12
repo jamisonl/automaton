@@ -34,8 +34,19 @@ print("=== END DEBUG ===")
 SPEC_DIR = Path(SPECPATH).resolve()
 APP_DIR = SPEC_DIR.parent.resolve() # Project root is parent of 'build' directory
 SRC_DIR = APP_DIR / 'src'
+
+# Ensure src is first in the path for PyInstaller to find modules correctly
 sys.path.insert(0, str(SRC_DIR))
 sys.path.insert(0, str(APP_DIR)) # For desktop_app.py itself
+
+# Debug: Print paths being used
+print(f"=== PYINSTALLER PATHS ===")
+print(f"APP_DIR: {APP_DIR}")
+print(f"SRC_DIR: {SRC_DIR}")
+print(f"Current sys.path entries related to project:")
+for path in sys.path[:5]:
+    print(f"  {path}")
+print("=== END PATHS ===")
 
 
 
@@ -57,6 +68,11 @@ a = Analysis(
         *[(str(f), 'litellm/litellm_core_utils/tokenizers') 
           for f in (Path(litellm.__file__).parent / 'litellm_core_utils' / 'tokenizers').glob('*.json') 
           if f.is_file()],
+        # Include all source files as data to ensure they're available
+        (str(SRC_DIR / 'agents'), 'agents'),
+        (str(SRC_DIR / 'core'), 'core'),
+        (str(SRC_DIR / 'io_layer'), 'io_layer'),
+        (str(SRC_DIR / 'ui'), 'ui'),
     ],
     hiddenimports=[
         'pydantic_core._pydantic_core',

@@ -99,10 +99,12 @@ class SettingsDialog:
         )
         info_text.pack(fill="x")
 
+        model_info = """Available Gemini Models:
 
 • gemini-2.5-flash-preview-05-20: Adaptive thinking, cost efficiency
 • gemini-2.5-pro-preview-06-05: Enhanced reasoning, advanced coding
 
+Choose the model that best fits your needs. The flash model is faster and more cost-effective, while the pro model offers enhanced reasoning capabilities."""
 
         info_text.insert("1.0", model_info)
         info_text.config(state="disabled")

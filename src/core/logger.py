@@ -1,6 +1,23 @@
 import logging
 import os
 import sys
+import io
+
+
+def create_unicode_safe_stream():
+    try:
+        if hasattr(sys.stdout, "buffer"):
+            return io.TextIOWrapper(
+                sys.stdout.buffer,
+                encoding="utf-8",
+                errors="replace",
+                newline="\n",
+                line_buffering=True,
+            )
+        else:
+            return sys.stdout
+    except (AttributeError, OSError):
+        return sys.stdout
 
 
 def setup_logger():
@@ -14,7 +31,8 @@ def setup_logger():
     logger = logging.getLogger("llm_agent")
     logger.setLevel(log_level)
 
-    ch = logging.StreamHandler(sys.stdout)
+    unicode_safe_stream = create_unicode_safe_stream()
+    ch = logging.StreamHandler(unicode_safe_stream)
     ch.setLevel(log_level)
 
     formatter = logging.Formatter(
