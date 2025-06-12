@@ -1,0 +1,24 @@
+[project]
+name = "automaton"
+version = "0.1.0"
+description = "A multi-agent system that intelligently chunks your features into pull requests"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.21.0",
+    "dspy>=2.6.27",
+    "gitpython>=3.1.44",
+    "langchain[google-genai]>=0.3.25",
+    "pydantic>=2.11.5",
+    "pygithub>=2.6.1",
+    "python-dotenv>=1.0.0",
+    "rich>=14.0.0",
+    "pathspec>=0.12.1", # For .gitignore parsing
+    "tiktoken==0.7.0",
+    "pyinstaller>=6.14.1",
+]
+
+[project.optional-dependencies]
+build = [
+    "pyinstaller>=6.0.0",
+]

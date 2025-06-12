@@ -1,0 +1,78 @@
+name: CI - Build and Test
+
+on:
+  push:
+    branches: [ develop ]
+    tags-ignore: [ 'v*.*.*' ]  # Don't run CI for release tags
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  test-build:
+    name: Test Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install uv (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          irm https://astral.sh/uv/install.ps1 | iex
+          echo "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run tests (if any)
+        run: |
+          # Add test commands here when you have tests
+          # uv run pytest tests/
+          echo "No tests configured yet"
+
+      - name: Test CLI build
+        run: uv run python build/build.py cli
+
+      - name: Test GUI build
+        run: uv run python build/build.py gui
+
+      - name: Verify build outputs
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            test -f dist/cli/automaton.exe && echo "✅ CLI executable found"
+            test -f dist/gui/automaton.exe && echo "✅ GUI executable found"
+          else
+            test -f dist/cli/automaton && echo "✅ CLI executable found"
+            test -f dist/gui/automaton && echo "✅ GUI executable found"
+          fi
+
+      - name: Upload build artifacts (for debugging)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-build-${{ matrix.os }}
+          path: |
+            dist/
+            pyinstaller_build/
+            *.log
+          retention-days: 7

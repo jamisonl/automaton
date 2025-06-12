@@ -1,0 +1,140 @@
+name: Build and Release Automaton
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            ext: ""
+            archive_format: tar.gz
+          - os: macos-latest
+            platform: macos
+            ext: ""
+            archive_format: zip
+          - os: windows-latest
+            platform: windows
+            ext: .exe
+            archive_format: zip
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install uv (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          irm https://astral.sh/uv/install.ps1 | iex
+          echo "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Build applications
+        run: uv run python build/build.py all
+
+      - name: Determine Release Version
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create archives (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $VERSION = "${{ steps.get_version.outputs.VERSION }}"
+          $PLATFORM = "${{ matrix.platform }}"
+          
+          # Create archives using PowerShell Compress-Archive
+          Compress-Archive -Path "dist/gui" -DestinationPath "automaton-gui-$VERSION-$PLATFORM.zip"
+          Compress-Archive -Path "dist/cli" -DestinationPath "automaton-cli-$VERSION-$PLATFORM.zip"
+          
+          # Set environment variables for upload
+          echo "GUI_ARCHIVE=automaton-gui-$VERSION-$PLATFORM.zip" >> $env:GITHUB_ENV
+          echo "CLI_ARCHIVE=automaton-cli-$VERSION-$PLATFORM.zip" >> $env:GITHUB_ENV
+
+      - name: Create archives (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          PLATFORM="${{ matrix.platform }}"
+          
+          # Create archives
+          cd dist
+          if [ "${{ matrix.archive_format }}" = "zip" ]; then
+            if [ "$PLATFORM" = "macos" ] && [ -d "gui/Automaton.app" ]; then
+              # macOS: Archive the .app bundle directly
+              cd gui && zip -r "../../automaton-gui-${VERSION}-${PLATFORM}.zip" Automaton.app && cd ..
+            else
+              # Archive the gui folder
+              zip -r "../automaton-gui-${VERSION}-${PLATFORM}.zip" gui
+            fi
+            zip -r "../automaton-cli-${VERSION}-${PLATFORM}.zip" cli
+          else
+            # Linux: Use tar.gz
+            tar -czvf "../automaton-gui-${VERSION}-${PLATFORM}.tar.gz" gui
+            tar -czvf "../automaton-cli-${VERSION}-${PLATFORM}.tar.gz" cli
+          fi
+          cd ..
+          
+          # Set environment variables for upload
+          echo "GUI_ARCHIVE=automaton-gui-${VERSION}-${PLATFORM}.${{ matrix.archive_format }}" >> $GITHUB_ENV
+          echo "CLI_ARCHIVE=automaton-cli-${VERSION}-${PLATFORM}.${{ matrix.archive_format }}" >> $GITHUB_ENV
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: automaton-${{ matrix.platform }}
+          path: |
+            ${{ env.GUI_ARCHIVE }}
+            ${{ env.CLI_ARCHIVE }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Determine Release Version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Automaton Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: artifacts/**/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
