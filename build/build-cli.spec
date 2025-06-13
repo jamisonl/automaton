@@ -97,11 +97,11 @@ a = Analysis(
         'src.core.config',
         # For agents modules
         'agents.base',
-        'agents.master_coordinator',
+        'agents.coordinator',
         'agents.feature_analyzer',
         'agents.pr_generator',
         'src.agents.base',
-        'src.agents.master_coordinator',
+        'src.agents.coordinator',
         'src.agents.feature_analyzer',
         'src.agents.pr_generator',
         # For io_layer modules

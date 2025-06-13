@@ -1,4 +1,4 @@
-"""Master coordinator agent that orchestrates the entire workflow."""
+"""Coordinator agent that orchestrates the entire workflow."""
 
 import asyncio
 import json
@@ -12,7 +12,7 @@ from core.coordination import Chunk, ChunkStatus
 from core.logger import logger
 
 
-class MasterCoordinatorAgent(BaseAgent):
+class CoordinatorAgent(BaseAgent):
     def __init__(
         self, config: AgentConfig, target_repo_path: str, shared_event_bus=None
     ):
@@ -106,7 +106,7 @@ class MasterCoordinatorAgent(BaseAgent):
 
         logger.debug("About to publish ANALYZE_FEATURE event...")
         logger.info(
-            f"MasterCoordinator: About to publish ANALYZE_FEATURE for {self.current_feature_id}"
+            f"Coordinator: About to publish ANALYZE_FEATURE for {self.current_feature_id}"
         )
         try:
             logger.debug("Calling self.publish_event...")
@@ -203,7 +203,7 @@ class MasterCoordinatorAgent(BaseAgent):
     async def handle_feature_analyzed(self, event: Event):
         if event.agent_id == self.agent_id:
             logger.debug(
-                "MasterCoordinator ignoring own FEATURE_ANALYZED event (if self-published, though not typical)."
+                "Coordinator ignoring own FEATURE_ANALYZED event (if self-published, though not typical)."
             )
             return
 

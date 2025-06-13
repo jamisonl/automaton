@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from src.core.logger import logger
 from .task_manager import TaskManager, TaskStatus
 from .progress_publisher import ProgressPublisher, ProgressEventType
-from agents.master_coordinator import MasterCoordinatorAgent
+from agents.coordinator import CoordinatorAgent
 from agents.feature_analyzer import FeatureAnalyzerAgent
 from agents.pr_generator import PRGeneratorAgent
 from agents.base import AgentConfig
@@ -285,16 +285,14 @@ class SystemController:
 
             await asyncio.sleep(0.5)
 
-            master_coordinator = self.agents.get("master_coordinator")
-            if master_coordinator:
-                await master_coordinator.start_feature_processing(
-                    task.feature_specification
-                )
+            coordinator = self.agents.get("coordinator")
+            if coordinator:
+                await coordinator.start_feature_processing(task.feature_specification)
 
-                while master_coordinator.running and self.is_running:
+                while coordinator.running and self.is_running:
                     await asyncio.sleep(1)
 
-                if master_coordinator.running:
+                if coordinator.running:
                     await self.task_manager.update_task_status(
                         task.task_id, TaskStatus.CANCELLED
                     )
@@ -339,9 +337,9 @@ class SystemController:
         shared_event_bus = EventBus(self.db_path)
         await shared_event_bus.initialize()
 
-        self.agents["master_coordinator"] = MasterCoordinatorAgent(
+        self.agents["coordinator"] = CoordinatorAgent(
             AgentConfig(
-                agent_id="master_coordinator",
+                agent_id="coordinator",
                 event_bus_db_path=self.db_path,
                 gemini_api_key=self.gemini_api_key,
             ),

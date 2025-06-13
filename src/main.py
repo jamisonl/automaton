@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from agents.base import AgentConfig
-from agents.master_coordinator import MasterCoordinatorAgent
+from agents.coordinator import CoordinatorAgent
 from agents.feature_analyzer import FeatureAnalyzerAgent
 from agents.pr_generator import PRGeneratorAgent
 from core.events import EventBus
@@ -49,9 +49,9 @@ class PRAutomationSystem:
 
         self.shared_event_bus = EventBus(db_path)
 
-        self.master_coordinator = MasterCoordinatorAgent(
+        self.coordinator = CoordinatorAgent(
             AgentConfig(
-                agent_id="master_coordinator",
+                agent_id="coordinator",
                 event_bus_db_path=db_path,
                 gemini_api_key=gemini_api_key,
             ),
@@ -82,7 +82,7 @@ class PRAutomationSystem:
         )
 
         self.agents = [
-            self.master_coordinator,
+            self.coordinator,
             self.feature_analyzer,
             self.pr_generator,
         ]
@@ -136,11 +136,11 @@ class PRAutomationSystem:
         logger.info(f"Processing feature: {feature_specification}")
 
         logger.debug("About to call start_feature_processing...")
-        await self.master_coordinator.start_feature_processing(feature_specification)
+        await self.coordinator.start_feature_processing(feature_specification)
         logger.debug("start_feature_processing completed!")
 
     async def get_status(self):
-        return await self.master_coordinator.get_status()
+        return await self.coordinator.get_status()
 
     def create_status_table(self, status):
         table = Table(title="PR Automation System Status")
@@ -239,7 +239,7 @@ async def main():
         await system.process_feature(feature_to_process)
 
         while system.running:
-            if not system.master_coordinator.running:
+            if not system.coordinator.running:
                 logger.info("🎉 Feature processing completed!")
                 break
             await asyncio.sleep(1)
