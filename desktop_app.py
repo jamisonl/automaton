@@ -537,7 +537,7 @@ class LLMAgentDesktopApp:
             global_logger_ref.info(f"Task submitted with ID: {task_id}")
             self.add_status(f"✅ Task submitted with ID: {task_id}")
             self.add_status("🔍 Task processing started...")
-            self._monitor_task_progress(loop, task_id)
+            self._monitor_task_progress(loop, task_id, controller_with_creds)
         except Exception as e:
             self.add_status(f"❌ Feature processing failed: {str(e)}")
             import traceback
@@ -577,9 +577,9 @@ class LLMAgentDesktopApp:
                         self.root.after(0, self.add_status, f"📋 Details: {summary.error_message}")
                 break
 
-    def _monitor_task_progress(self, loop, task_id):
+    def _monitor_task_progress(self, loop, task_id, controller_for_task):
         try:
-            loop.run_until_complete(self._stream_task_events(task_id))
+            loop.run_until_complete(self._stream_task_events(task_id, controller=controller_for_task))
         except Exception as e:
             self.root.after(0, self.add_status, f"❌ Progress monitoring error: {str(e)}")
             import traceback
